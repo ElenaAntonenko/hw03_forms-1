@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Профайл пользователя {{ user.username }}{% endblock %}
+{% block content %}
+{% load static %}
+    <div class="container py-5">
+        <h1>Все посты пользователя {{ author.username }}</h1>
+        <h3>Всего постов: {{ page_obj|length }} </h3>
+        {% for post in page_obj %}
+            <article>
+                <ul>
+                    <li>
+                        Дата публикации: {{ post.pub_date|date:"d E Y" }}
+                    </li>
+                </ul>
+                <p>
+                    {{ post.text }}
+                </p>
+
+                {% if post.group %}
+                    <a href="{% url 'posts:group_posts' post.group.slug %}">все записи группы</a>
+                {% endif %}
+            </article>
+             <div class="row">
+                <div class="col-6 align-items-start">
+                     <a href="{% url 'posts:post_detail' post.pk %}">подробная информация</a>
+                </div>
+                {% if post.author.username == user.username %}
+                    <div class="col-6 text-end">
+                         <a href="{% url 'posts:post_edit' post.pk %}" title="Редактировать пост">
+                            <img src="{% static 'img/post/post_edit.png' %}"
+                                 width="25" height="25" alt="редактировать пост">
+                        </a>
+                    </div>
+                {% endif %}
+           </div>
+            {% if not forloop.last %}
+                <hr>
+            {% endif %}
+        {% empty %}
+            <p>
+                К сожалению нет ни одного поста
+            </p>
+        {% endfor %}
+        {% include 'includes/paginator.html' %}
+    </div>
+{% endblock %}
