@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 
 from .forms import PostForm
 from .models import Post, Group, User
@@ -55,8 +56,8 @@ def post_create(request):
             save_form = form.save(commit=False)
             save_form.author_id = request.user.pk
             save_form.save()
-            return redirect('posts:profile', username=request.user.username)
 
+            return redirect('posts:profile', username=request.user.username)
     form = PostForm()
     context = {'form': form}
     return render(request, 'posts/create_post.html', context)
@@ -82,4 +83,4 @@ def post_edit(request, post_id):
                        }
             return render(request, 'posts/create_post.html', context)
         else:
-            return redirect('posts:index')
+            return redirect('users:login')
