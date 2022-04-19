@@ -7,7 +7,9 @@ User = get_user_model()
 class Post(models.Model):
     """Класс определяет модель постов."""
 
-    text = models.TextField(verbose_name='Текст')
+    text = models.TextField(verbose_name='Текст',
+                            help_text='Введите текст поста'
+                            )
     pub_date = models.DateTimeField(auto_now_add=True,
                                     verbose_name='Дата публикации'
                                     )
@@ -20,6 +22,7 @@ class Post(models.Model):
                               on_delete=models.SET_NULL,
                               related_name='group_info',
                               verbose_name='Группа',
+                              help_text='Группа, к которой будет относиться пост',
                               blank=True,
                               null=True
                               )
@@ -30,7 +33,7 @@ class Post(models.Model):
         ordering = ['-pub_date']
 
     def __str__(self):
-        return self.text
+        return self.text[:15]
 
 
 class Group(models.Model):
