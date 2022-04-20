@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -25,14 +27,19 @@ class ViewsTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username=USERNAME)
-        cls.post = Post.objects.create(
-            text='Тестовый пост',
-            author=cls.user,
-        )
         cls.group = Group.objects.create(
             title='Тестовая группа',
             description='Тестовое описание',
             slug=GROUP_POST_SLAG
+        )
+        cls.post = Post.objects.create(
+            text='Тестовый пост 1',
+            author=cls.user
+        )
+        cls.post_1 = Post.objects.create(
+            text='Тестовый пост 2',
+            author=cls.user,
+            group=cls.group
         )
         cls.DETAIL_POST = reverse('posts:post_detail',
                                   kwargs={'post_id': cls.post.pk}
@@ -53,8 +60,8 @@ class ViewsTest(TestCase):
         templates_page_names = {
             INDEX: 'posts/index.html',
             GROUP_POST: 'posts/group_list.html',
-            self.DETAIL_POST: 'posts/post_detail.html',
             PROFILE: 'posts/profile.html',
+            self.DETAIL_POST: 'posts/post_detail.html',
             CREATE_POST: 'posts/create_post.html',
             self.POST_EDIT: 'posts/create_post.html'
         }
@@ -62,6 +69,43 @@ class ViewsTest(TestCase):
             with self.subTest(url=url):
                 response = self.authorized_client.get(url)
                 self.assertTemplateUsed(response, template)
+
+    def test_index_page_show_correct_context(self):
+        """Шаблон posts:index сформирован с правильным контекстом."""
+
+        response = self.authorized_client.get(INDEX)
+        first_object = response.context['page_obj'][0]
+        text = first_object.text
+        author = first_object.author
+        self.assertEqual(text, 'Тестовый пост 1')
+        self.assertEqual(author.username, USERNAME)
+
+    def test_group_posts_page_show_correct_context(self):
+        """Шаблон posts:group_posts сформирован с правильным контекстом."""
+
+        # response = self.authorized_client.get(GROUP_POST)
+        # first_object = response.context['page_obj']
+        list_command = [
+            INDEX,
+            GROUP_POST,
+            PROFILE,
+            self.DETAIL_POST
+        ]
+        for url in list_command:
+            with self.subTest(url=url):
+                response = self.authorized_client.get(url)
+                first_object = response.context['page_obj']
+                if url == GROUP_POST:
+                    text = first_object.text
+                    author = first_object.author
+                    group = first_object.group
+                    self.assertEqual(text, 'Тестовый пост 2')
+                    self.assertEqual(author.username, USERNAME)
+                    self.assertEqual(group.slug, GROUP_POST_SLAG)
+                text = first_object.text
+                author = first_object.author
+                self.assertEqual(text, '')
+
 
 
 class PaginatorViewTest(TestCase):
@@ -93,8 +137,7 @@ class PaginatorViewTest(TestCase):
         a = [INDEX, GROUP_POST, PROFILE]
         for url in a:
             with self.subTest(url=url):
-                response = self.guest_client.get(url)
-                print(response.content_params)
+                response = self.authorized_client.get(url)
                 self.assertEqual(response.context['object_list'], 10)
         # response_one_page = self.guest_client.get(INDEX)
         # response_second_page = self.guest_client(INDEX + '?page=2')
