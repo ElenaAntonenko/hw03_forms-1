@@ -34,10 +34,6 @@ class ViewsTest(TestCase):
         )
         cls.post = Post.objects.create(
             text='Тестовый пост 1',
-            author=cls.user
-        )
-        cls.post_1 = Post.objects.create(
-            text='Тестовый пост 2',
             author=cls.user,
             group=cls.group
         )
@@ -47,12 +43,13 @@ class ViewsTest(TestCase):
         cls.POST_EDIT = reverse('posts:post_edit',
                                 kwargs={'post_id': cls.post.pk}
                                 )
+        cls.guest_client = Client()
+
+        cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
 
     def setUp(self) -> None:
-        self.guest_client = Client()
-
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+       pass
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -70,41 +67,35 @@ class ViewsTest(TestCase):
                 response = self.authorized_client.get(url)
                 self.assertTemplateUsed(response, template)
 
-    def test_index_page_show_correct_context(self):
-        """Шаблон posts:index сформирован с правильным контекстом."""
+    def test_index_and_group_posts_and_profile_correct_context(self):
+        """
+        Шаблоны posts:index, posts:group_posts и posts:profile
+        сформирован с правильным контекстом.
+        """
 
-        response = self.authorized_client.get(INDEX)
-        first_object = response.context['page_obj'][0]
-        text = first_object.text
-        author = first_object.author
-        self.assertEqual(text, 'Тестовый пост 1')
-        self.assertEqual(author.username, USERNAME)
-
-    def test_group_posts_page_show_correct_context(self):
-        """Шаблон posts:group_posts сформирован с правильным контекстом."""
-
-        # response = self.authorized_client.get(GROUP_POST)
-        # first_object = response.context['page_obj']
-        list_command = [
+        urls = [
             INDEX,
             GROUP_POST,
             PROFILE,
-            self.DETAIL_POST
         ]
-        for url in list_command:
+        for url in urls:
             with self.subTest(url=url):
-                response = self.authorized_client.get(url)
-                first_object = response.context['page_obj']
+                response = self.guest_client.get(url)
+                first_object = response.context['page_obj'][0]
                 if url == GROUP_POST:
-                    text = first_object.text
-                    author = first_object.author
-                    group = first_object.group
-                    self.assertEqual(text, 'Тестовый пост 2')
-                    self.assertEqual(author.username, USERNAME)
-                    self.assertEqual(group.slug, GROUP_POST_SLAG)
-                text = first_object.text
-                author = first_object.author
-                self.assertEqual(text, '')
+                    self.assertEqual(first_object.text, 'Тестовый пост 1')
+                    self.assertEqual(first_object.author.username, USERNAME)
+                    self.assertEqual(first_object.group.slug, GROUP_POST_SLAG)
+                self.assertEqual(first_object.text, 'Тестовый пост 1')
+                self.assertEqual(first_object.author.username, USERNAME)
+
+    def test_post_detail_correct_context(self):
+        """Шаблон posts:post_detail сформированы с правильным контекстом."""
+
+        response = self.guest_client.get(self.DETAIL_POST)
+        detail_post = response.context['detail_post']
+        self.assertEqual(detail_post.text, 'Тестовый пост 1')
+        self.assertEqual(detail_post.author.username, USERNAME)
 
 
 
