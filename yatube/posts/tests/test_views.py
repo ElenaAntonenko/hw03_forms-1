@@ -1,5 +1,6 @@
 from pprint import pprint
 
+from django import forms
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -49,7 +50,7 @@ class ViewsTest(TestCase):
         cls.authorized_client.force_login(cls.user)
 
     def setUp(self) -> None:
-       pass
+        pass
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -97,6 +98,24 @@ class ViewsTest(TestCase):
         self.assertEqual(detail_post.text, 'Тестовый пост 1')
         self.assertEqual(detail_post.author.username, USERNAME)
 
+    def test_post_create_correct_context(self):
+        """
+        Шаблон posts:post_create и posts:post_edit
+        сформированы с правильным контекстом.
+        """
+
+        urls = [CREATE_POST, self.POST_EDIT]
+
+        form_fields = {
+            'text': forms.fields.CharField,
+            'group': forms.fields.ChoiceField,
+        }
+        for value, expected in form_fields.items():
+            with self.subTest(value=value):
+                for url in urls:
+                    client = self.authorized_client.get(url)
+                    form_field = client.context.get('form').fields.get(value)
+                    self.assertIsInstance(form_field, expected)
 
 
 class PaginatorViewTest(TestCase):
