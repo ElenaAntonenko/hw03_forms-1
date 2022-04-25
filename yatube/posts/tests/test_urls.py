@@ -2,33 +2,20 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
 
+from .utils_tests import TestVariables as data
 from ..models import Group, Post
 
 User = get_user_model()
 
-USERNAME = 'testuser'
-GROUP_POST_SLAG = 'test-slug'
-INDEX = reverse('posts:index')
-GROUP_POST = reverse('posts:group_posts',
-                     kwargs={'slug': GROUP_POST_SLAG}
-                     )
-PROFILE = reverse('posts:profile',
-                  kwargs={'username': USERNAME}
-                  )
-CREATE_POST = reverse('posts:post_create')
-AUTH = reverse('users:login')
-FAKE_PAGE = '/fake_page/'
-
 
 class StaticURLTests(TestCase):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username=USERNAME)
+        cls.user = User.objects.create_user(username=data.USERNAME.value)
         cls.group = Group.objects.create(
             title='Тестовая группа',
-            slug=GROUP_POST_SLAG,
+            slug=data.GROUP_POST_SLAG.value,
             description='Тестовое описание',
         )
         cls.post = Post.objects.create(
@@ -57,17 +44,17 @@ class StaticURLTests(TestCase):
         CODE_NOT_FOUND = 404
 
         url_names = [
-            [self.authorized_client, CREATE_POST, CODE_SUCCESS],
+            [self.authorized_client, data.CREATE_POST.value, CODE_SUCCESS],
             [self.authorized_client, self.POST_EDIT, CODE_SUCCESS],
             [self.authorized_client, self.DETAIL_POST, CODE_SUCCESS],
-            [self.authorized_client, FAKE_PAGE, CODE_NOT_FOUND],
-            [self.guest_client, INDEX, CODE_SUCCESS],
-            [self.guest_client, CREATE_POST, CODE_REDIRECT],
+            [self.authorized_client, data.FAKE_PAGE.value, CODE_NOT_FOUND],
+            [self.guest_client, data.INDEX.value, CODE_SUCCESS],
+            [self.guest_client, data.CREATE_POST.value, CODE_REDIRECT],
             [self.guest_client, self.POST_EDIT, CODE_REDIRECT],
-            [self.guest_client, GROUP_POST, CODE_SUCCESS],
-            [self.guest_client, PROFILE, CODE_SUCCESS],
+            [self.guest_client, data.GROUP_POST.value, CODE_SUCCESS],
+            [self.guest_client, data.PROFILE.value, CODE_SUCCESS],
             [self.guest_client, self.DETAIL_POST, CODE_SUCCESS],
-            [self.guest_client, FAKE_PAGE, CODE_NOT_FOUND]
+            [self.guest_client, data.FAKE_PAGE.value, CODE_NOT_FOUND]
         ]
         for client, url, code in url_names:
             with self.subTest(url=url):
@@ -83,13 +70,13 @@ class StaticURLTests(TestCase):
         templates_url_names = [
             [
                 self.guest_client,
-                CREATE_POST,
-                AUTH + '?next=' + CREATE_POST
+                data.CREATE_POST.value,
+                data.AUTH.value + '?next=' + data.CREATE_POST.value
             ],
             [
                 self.guest_client,
                 self.POST_EDIT,
-                AUTH + '?next=' + self.POST_EDIT
+                data.AUTH.value + '?next=' + self.POST_EDIT
             ],
         ]
         for client, url, url_redirect in templates_url_names:
@@ -102,13 +89,12 @@ class StaticURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
-
         templates_url_names = {
-            INDEX: 'posts/index.html',
-            GROUP_POST: 'posts/group_list.html',
+            data.INDEX.value: 'posts/index.html',
+            data.GROUP_POST.value: 'posts/group_list.html',
             self.DETAIL_POST: 'posts/post_detail.html',
-            PROFILE: 'posts/profile.html',
-            CREATE_POST: 'posts/create_post.html',
+            data.PROFILE.value: 'posts/profile.html',
+            data.CREATE_POST.value: 'posts/create_post.html',
             self.POST_EDIT: 'posts/create_post.html'
         }
         for url, template in templates_url_names.items():

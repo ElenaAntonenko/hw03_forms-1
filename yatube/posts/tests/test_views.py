@@ -1,37 +1,23 @@
-from pprint import pprint
-
 from django import forms
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
 
+from .utils_tests import TestVariables as data
 from ..models import Group, Post
 
 User = get_user_model()
-
-USERNAME = 'Test_user'
-GROUP_POST_SLAG = 'test_slug'
-
-INDEX = reverse('posts:index')
-GROUP_POST = reverse('posts:group_posts',
-                     kwargs={'slug': GROUP_POST_SLAG}
-                     )
-PROFILE = reverse('posts:profile',
-                  kwargs={'username': USERNAME}
-                  )
-CREATE_POST = reverse('posts:post_create')
-AUTH = reverse('users:login')
 
 
 class ViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username=USERNAME)
+        cls.user = User.objects.create_user(username=data.USERNAME.value)
         cls.group = Group.objects.create(
             title='Тестовая группа',
             description='Тестовое описание',
-            slug=GROUP_POST_SLAG
+            slug=data.GROUP_POST_SLAG.value
         )
         cls.post = Post.objects.create(
             text='Тестовый пост 1',
@@ -44,23 +30,22 @@ class ViewsTest(TestCase):
         cls.POST_EDIT = reverse('posts:post_edit',
                                 kwargs={'post_id': cls.post.pk}
                                 )
-        cls.guest_client = Client()
-
-        cls.authorized_client = Client()
-        cls.authorized_client.force_login(cls.user)
 
     def setUp(self) -> None:
-        pass
+        self.guest_client = Client()
+
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
 
         templates_page_names = {
-            INDEX: 'posts/index.html',
-            GROUP_POST: 'posts/group_list.html',
-            PROFILE: 'posts/profile.html',
+            data.INDEX.value: 'posts/index.html',
+            data.GROUP_POST.value: 'posts/group_list.html',
+            data.PROFILE.value: 'posts/profile.html',
             self.DETAIL_POST: 'posts/post_detail.html',
-            CREATE_POST: 'posts/create_post.html',
+            data.CREATE_POST.value: 'posts/create_post.html',
             self.POST_EDIT: 'posts/create_post.html'
         }
         for url, template in templates_page_names.items():
@@ -75,20 +60,29 @@ class ViewsTest(TestCase):
         """
 
         urls = [
-            INDEX,
-            GROUP_POST,
-            PROFILE,
+            data.INDEX.value,
+            data.GROUP_POST.value,
+            data.PROFILE.value,
         ]
         for url in urls:
             with self.subTest(url=url):
                 response = self.guest_client.get(url)
                 first_object = response.context['page_obj'][0]
-                if url == GROUP_POST:
+                if url == data.GROUP_POST.value:
                     self.assertEqual(first_object.text, 'Тестовый пост 1')
-                    self.assertEqual(first_object.author.username, USERNAME)
-                    self.assertEqual(first_object.group.slug, GROUP_POST_SLAG)
+                    self.assertEqual(
+                        first_object.author.username,
+                        data.USERNAME.value
+                    )
+                    self.assertEqual(
+                        first_object.group.slug,
+                        data.GROUP_POST_SLAG.value
+                    )
                 self.assertEqual(first_object.text, 'Тестовый пост 1')
-                self.assertEqual(first_object.author.username, USERNAME)
+                self.assertEqual(
+                    first_object.author.username,
+                    data.USERNAME.value
+                )
 
     def test_post_detail_correct_context(self):
         """Шаблон posts:post_detail сформированы с правильным контекстом."""
@@ -96,7 +90,7 @@ class ViewsTest(TestCase):
         response = self.guest_client.get(self.DETAIL_POST)
         detail_post = response.context['detail_post']
         self.assertEqual(detail_post.text, 'Тестовый пост 1')
-        self.assertEqual(detail_post.author.username, USERNAME)
+        self.assertEqual(detail_post.author.username, data.USERNAME.value)
 
     def test_post_create_correct_context(self):
         """
@@ -104,7 +98,7 @@ class ViewsTest(TestCase):
         сформированы с правильным контекстом.
         """
 
-        urls = [CREATE_POST, self.POST_EDIT]
+        urls = [data.CREATE_POST.value, self.POST_EDIT]
 
         form_fields = {
             'text': forms.fields.CharField,
@@ -117,39 +111,67 @@ class ViewsTest(TestCase):
                     form_field = client.context.get('form').fields.get(value)
                     self.assertIsInstance(form_field, expected)
 
+    def test_check_created_post_with_group(self):
+        """
+        Правильность вывода созданного поста с группой на страницах.
+        Правильность вывода поста в нужной группе
+        """
+
+        urls = [
+            data.INDEX.value,
+            data.GROUP_POST.value,
+            data.PROFILE.value
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.guest_client.get(url)
+                context = response.context['page_obj'][0]
+                self.assertIn(self.group.title, context.group.title)
+
+        response = self.guest_client.get(data.GROUP_POST.value)
+        context = response.context['page_obj'][0]
+        self.assertEqual(context.group, self.group)
+
 
 class PaginatorViewTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username=USERNAME)
-        cls.post = Post.objects.bulk_create(
-            [Post(
-                text=f'test_post_text_{i}',
-                author=cls.user
-            ) for i in range(1, 14)]
-        )
+        cls.user = User.objects.create_user(username=data.USERNAME.value)
         cls.group = Group.objects.create(
             title='Тестовая группа',
             description='Тестовое описание',
-            slug=GROUP_POST_SLAG
+            slug=data.GROUP_POST_SLAG.value
         )
+        cls.posts = []
+        for post in range(1, 14):
+            cls.posts.append(Post.objects.create(
+                text=f'text_{post}',
+                author=cls.user,
+                group=cls.group
+            ))
 
     def setUp(self) -> None:
         self.guest_client = Client()
 
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+    def test_index_profile_pages_contains_ten_records(self):
+        """
+        Определяет posts:index, posts:profile и posts:group_posts
+        правильность вывода постов на странице.
+        """
 
-    def test_index_page_contains_ten_records(self):
-        """Определяет правильность вывода постов на странице."""
-        COUNT_POSTS_ONE_PAGE = 10
-        a = [INDEX, GROUP_POST, PROFILE]
-        for url in a:
+        pages_paginator = [
+            [data.INDEX.value, self.posts],
+            [data.GROUP_POST.value, self.posts],
+            [data.PROFILE.value, self.posts]
+        ]
+        for url, posts in pages_paginator:
             with self.subTest(url=url):
-                response = self.authorized_client.get(url)
-                self.assertEqual(response.context['object_list'], 10)
-        # response_one_page = self.guest_client.get(INDEX)
-        # response_second_page = self.guest_client(INDEX + '?page=2')
-        # self.assertEqual(len(response_one_page.context['object_list']), 10)
-        # self.assertEqual(len(response_second_page.context['object_list']), 3)
+                response_one_page = self.guest_client.get(url)
+                response_two_page = self.guest_client.get(url + '?page=2')
+                self.assertEqual(
+                    len(response_one_page.context['page_obj']), 10
+                )
+                self.assertEqual(
+                    len(response_two_page.context['page_obj']), 3
+                )
