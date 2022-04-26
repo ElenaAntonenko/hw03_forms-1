@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from .utils_tests import TestVariables as data
+from yatube.posts.tests.utils_tests import TestVariables as data
 from ..models import Post
 
 User = get_user_model()
@@ -60,19 +60,23 @@ class FormsTest(TestCase):
 
     def test_check_create_new_user(self):
         """Проверка создания нового пользователя."""
+
         NAME_USER = 'New_User'
         form_data = {
-            # 'first_name': NAME_USER,
-            # 'last_name': NAME_USER,
+            'first_name': NAME_USER,
+            'last_name': NAME_USER,
             'username': NAME_USER,
-            # 'email': NAME_USER + '@mail.com',
-            # 'password1': NAME_USER + '__001',
-            # 'password2': NAME_USER + '__001'
+            'email': NAME_USER + '@mail.com',
+            'password1': '56tertheh64',
+            'password2': '56tertheh64'
         }
         response = self.guest_client.post(
             data.SIGNUP.value,
             form_data,
             follow=True
         )
+        new_user = User.objects.get(username=NAME_USER)
+        self.assertEqual(new_user.username, NAME_USER)
+        self.assertRedirects(response, data.INDEX.value)
 
 

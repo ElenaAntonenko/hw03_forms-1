@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
 
-from .utils_tests import TestVariables as data
+from yatube.posts.tests.utils_tests import TestVariables as data
 from ..models import Group, Post
 
 User = get_user_model()
@@ -59,6 +59,9 @@ class StaticURLTests(TestCase):
         for client, url, code in url_names:
             with self.subTest(url=url):
                 response = client.get(url)
+                if url == self.POST_EDIT:
+                    if self.post.author != self.user:
+                        code = CODE_REDIRECT
                 self.assertEqual(
                     code,
                     response.status_code
@@ -89,6 +92,7 @@ class StaticURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
+
         templates_url_names = {
             data.INDEX.value: 'posts/index.html',
             data.GROUP_POST.value: 'posts/group_list.html',
