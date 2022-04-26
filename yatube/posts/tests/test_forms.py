@@ -47,7 +47,6 @@ class FormsTest(TestCase):
 
     def test_change_record_posts(self):
         """Проверка на изменение записи поста в базе даннхы."""
-
         form_data = {
             'text': 'modified_post',
         }
@@ -61,16 +60,19 @@ class FormsTest(TestCase):
 
     def test_check_create_new_user(self):
         """Проверка создания нового пользователя."""
-
+        NAME_USER = 'New_User'
         form_data = {
-            'username': 'New_user',
+            # 'first_name': NAME_USER,
+            # 'last_name': NAME_USER,
+            'username': NAME_USER,
+            # 'email': NAME_USER + '@mail.com',
+            # 'password1': NAME_USER + '__001',
+            # 'password2': NAME_USER + '__001'
         }
         response = self.guest_client.post(
             data.SIGNUP.value,
             form_data,
             follow=True
         )
-
-        print(User.objects.all())
 
 

@@ -6,7 +6,7 @@ from ..models import Group, Post
 User = get_user_model()
 
 
-class TaskPostModelTest(TestCase):
+class ModelsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -23,13 +23,19 @@ class TaskPostModelTest(TestCase):
 
     def test_models_have_correct_object_names(self):
         """Проверяем, что у моделей корректно работает __str__."""
-        post = TaskPostModelTest.post
-        expected_object_name = post.text
-        self.assertEqual(expected_object_name, str(post))
+
+        objects_names = [self.post, self.group]
+        for obj in objects_names:
+            with self.subTest(obj=obj):
+                self.assertEqual(
+                    obj.text if obj == self.post else obj.title,
+                    str(obj)
+                )
 
     def test_verbose_name(self):
         """verbose_name в полях совпадает с ожидаемым."""
-        post = TaskPostModelTest.post
+
+        post = self.post
         field_verboses = {
             'text': 'Текст',
             'pub_date': 'Дата публикации',
@@ -44,7 +50,8 @@ class TaskPostModelTest(TestCase):
 
     def test_help_text(self):
         """help_text в полях совпадает с ожидаемым."""
-        post = TaskPostModelTest.post
+
+        post = self.post
         field_helps = {
             'text': 'Введите текст поста',
             'group': 'Группа, к которой будет относиться пост'
